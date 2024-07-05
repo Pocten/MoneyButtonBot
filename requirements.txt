@@ -3,3 +3,4 @@ numpy
 matplotlib
 ta-lib
 yfinance
+openpyxl

@@ -1,8 +1,14 @@
 import pandas as pd
 import numpy as np
 import talib
+from config import SUPER_TREND_PERIOD, ATR_MULTIPLIER, BOLLINGER_PERIOD, BOLLINGER_NUM_STD_DEV
 
-def supertrend(df, period, atr_multiplier):
+def bollinger_bands(df, period=BOLLINGER_PERIOD, num_std_dev=BOLLINGER_NUM_STD_DEV):
+    df['middle_band'] = talib.SMA(df['close'], timeperiod=period)
+    df['upper_band'], df['lower_band'], _ = talib.BBANDS(df['close'], timeperiod=period, nbdevup=num_std_dev, nbdevdn=num_std_dev, matype=0)
+    return df
+
+def supertrend(df, period=SUPER_TREND_PERIOD, atr_multiplier=ATR_MULTIPLIER):
     atr = talib.ATR(df['high'], df['low'], df['close'], timeperiod=period)
     hl2 = (df['high'] + df['low']) / 2
     final_upperband = hl2 + (atr_multiplier * atr)
@@ -26,11 +32,6 @@ def supertrend(df, period, atr_multiplier):
     df['final_lowerband'] = final_lowerband
     return df
 
-def bollinger_bands(df, period=20, num_std_dev=2):
-    df['middle_band'] = talib.SMA(df['close'], timeperiod=period)
-    df['upper_band'], df['lower_band'], _ = talib.BBANDS(df['close'], timeperiod=period, nbdevup=num_std_dev, nbdevdn=num_std_dev, matype=0)
-    return df
-
 def strategy(data):
     data = data.rename(columns=str.lower)
     if 'close' not in data.columns:
@@ -43,11 +44,14 @@ def strategy(data):
         print("Недостаточно данных для вычисления Supertrend и Bollinger Bands. Требуется как минимум 55 записей.")
         raise ValueError("Недостаточно данных для вычисления Supertrend и Bollinger Bands. Требуется как минимум 55 записей.")
 
-    data = supertrend(data, period=12, atr_multiplier=3)
-    data = bollinger_bands(data)
-
-    # Generate Buy/Sell signals based on Supertrend and Bollinger Bands
-    data['BuySignal'] = (data['supertrend'] & (data['close'] < data['lower_band'])).astype(int)
-    data['SellSignal'] = (~data['supertrend'] & (data['close'] > data['upper_band'])).astype(int)
+    data = supertrend(data, period=SUPER_TREND_PERIOD, atr_multiplier=ATR_MULTIPLIER)
+    data = bollinger_bands(data, period=BOLLINGER_PERIOD, num_std_dev=BOLLINGER_NUM_STD_DEV)
+    
+    # Определяем, когда рынок во флете
+    data['in_flat'] = (data['close'] > data['lower_band']) & (data['close'] < data['upper_band'])
+    
+    # Генерация сигналов покупки и продажи
+    data['BuySignal'] = (data['supertrend'] & (data['close'] < data['lower_band']) & ~data['in_flat']).astype(int)
+    data['SellSignal'] = (~data['supertrend'] & (data['close'] > data['upper_band']) & ~data['in_flat']).astype(int)
 
     return data
