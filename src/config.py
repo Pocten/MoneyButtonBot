@@ -1,0 +1,18 @@
+TICKERS = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "BABA", "V", "JNJ", "WMT", "NVDA"]
+START_DATE = "2022-07-07"
+END_DATE = "2024-07-03"
+DATA_DIRECTORY = "data/hourly"
+INTERVAL = "1h"
+
+# Trading parameters
+INITIAL_BALANCE = 1000
+TAKE_PROFIT_PERCENT = 0.15
+STOP_LOSS_PERCENT = 0.10
+
+BOLLINGER_PERIOD = 20
+BOLLINGER_NUM_STD_DEV = 2
+
+SUPER_TREND_PERIOD = 12
+ATR_MULTIPLIER = 3
+
+WHOLE_SHARES_ONLY = True  # True if only whole shares can be bought, False otherwise
