@@ -1,13 +1,41 @@
-# MoneyButtonBot
+# MoneyButtonBot - Combined_Supertrend_Strategy
 
-MoneyButtonBot is an automated trading bot designed for TradingView. The bot uses multiple Exponential Moving Averages (EMAs) to identify market trends and execute trades. It includes built-in mechanisms for take profit and stop loss to manage risk.
+MoneyButtonBot is an automated trading bot using the Combined Supertrend and Bollinger Bands strategy to identify market trends and execute trades.
 
 ## Features
 
-- **EMA Indicators:** Uses four different EMAs (13, 21, 34, 55 periods) to identify bullish and bearish trends.
-- **Automated Trading:** Places buy and sell orders based on EMA conditions.
-- **Risk Management:** Includes fixed take profit and stop loss percentages.
+- **Supertrend and Bollinger Bands:** Combines Supertrend with Bollinger Bands to identify bullish and bearish trends.
+- **Automated Trading:** Places buy and sell orders based on combined conditions.
+- **Risk Management:** Includes take profit and stop loss mechanisms.
 
 ## Usage
 
-To use MoneyButtonBot, copy the Pine Script code into TradingView's Pine Editor and add the strategy to your chart.
+1. Clone the repository:
+    \`\`\`sh
+    git clone https://github.com/yourusername/MoneyButtonBot.git
+    cd MoneyButtonBot
+    \`\`\`
+
+2. Install the required dependencies:
+    \`\`\`sh
+    pip install -r requirements.txt
+    \`\`\`
+
+3. Ensure you are on the correct branch:
+    \`\`\`sh
+    git checkout Combined_Supertrend_Strategy
+    \`\`\`
+
+4. Run the bot:
+    \`\`\`sh
+    python bot.py
+    \`\`\`
+
+## Requirements
+
+- Python 3.x
+- Pandas
+- NumPy
+- Matplotlib
+- TA-Lib
+- yfinance
