@@ -1,3 +1,5 @@
+# MoneyButtonBot - EMA_Trend_Meter
+
 MoneyButtonBot is an automated trading bot using the EMA (Exponential Moving Averages) strategy to identify market trends and execute trades.
 
 ## Features
