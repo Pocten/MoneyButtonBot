@@ -11,25 +11,25 @@ MoneyButtonBot is an automated trading bot using the Combined Supertrend and Bol
 ## Usage
 
 1. Clone the repository:
-    \`\`\`sh
+    ```sh
     git clone https://github.com/yourusername/MoneyButtonBot.git
     cd MoneyButtonBot
-    \`\`\`
+    ```
 
 2. Install the required dependencies:
-    \`\`\`sh
+    ```sh
     pip install -r requirements.txt
-    \`\`\`
+    ```
 
 3. Ensure you are on the correct branch:
-    \`\`\`sh
+    ```sh
     git checkout Combined_Supertrend_Strategy
-    \`\`\`
+    ```
 
 4. Run the bot:
-    \`\`\`sh
+    ```sh
     python bot.py
-    \`\`\`
+    ```
 
 ## Requirements
 
