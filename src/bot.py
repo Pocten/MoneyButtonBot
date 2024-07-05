@@ -1,5 +1,5 @@
 import pandas as pd
-from strategy import strategy
+from supertrend import strategy
 from backtest import backtest, analyze_stocks, plot_results
 
 def main():
@@ -8,16 +8,12 @@ def main():
     start_date = "2019-05-26"
     end_date = "2024-05-26"
 
-    # Скачиваем данные, если они еще не были скачаны
     download_data_for_tickers(tickers, start_date, end_date)
 
-    # Выполняем анализ акций
     results = analyze_stocks(tickers, start_date, end_date)
 
-    # Выводим результаты на графике
     plot_results(results)
 
-    # Печатаем текстовую сводку результатов
     for ticker, result in results.items():
         print(f"Ticker: {ticker}")
         print(f"Final Balance: ${result['Final Balance']:.2f}")

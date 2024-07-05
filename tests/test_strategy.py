@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from src.strategy import strategy
+from src.supertrend import strategy
 
 class TestStrategy(unittest.TestCase):
     def test_strategy(self):

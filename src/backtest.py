@@ -1,11 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from strategy import strategy
+from supertrend import strategy
 
-def backtest(data, initial_balance=1000, take_profit_percent=0.15, stop_loss_percent=0.05):
+def backtest(data, initial_balance=1000, take_profit_percent=0.15, stop_loss_percent=0.10):
     data = strategy(data)
     balance = initial_balance
-    position = 0
+    position = 0  # 0: no position, 1: long, -1: short
     balance_over_time = []
 
     for index, row in data.iterrows():
@@ -37,12 +37,11 @@ def analyze_stocks(tickers, start_date, end_date):
 
     for ticker in tickers:
         data = pd.read_csv(f'data/historical/{ticker}.csv')
-        data = data.rename(columns=str.lower)  # Приведение всех имен столбцов к нижнему регистру
+        data = data.rename(columns=str.lower)
         if 'close' not in data.columns:
             raise KeyError(f"Data for {ticker} must contain 'close' column.")
         data['close'] = pd.to_numeric(data['close'], errors='coerce')
         data = data.dropna(subset=['close'])
-        # Проверка длинны данных
         if len(data) < 55:
             print(f"Недостаточно данных для {ticker}. Пропущен.")
             continue
