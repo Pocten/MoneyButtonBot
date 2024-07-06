@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from supertrend import strategy
-from config import INITIAL_BALANCE, TAKE_PROFIT_PERCENT, STOP_LOSS_PERCENT, WHOLE_SHARES_ONLY, TICKERS, START_DATE, END_DATE
+from config import DATA_DIRECTORY, INITIAL_BALANCE, TAKE_PROFIT_PERCENT, STOP_LOSS_PERCENT, WHOLE_SHARES_ONLY, TICKERS, START_DATE, END_DATE
 
 # Глобальный датафрейм для записи всех сделок
 trades_df = pd.DataFrame(columns=['Ticker', 'Date', 'Trade Type', 'Action', 'Shares', 'Price', 'Profit', 'Balance'])
@@ -60,7 +60,7 @@ def backtest(data, ticker, initial_balance=INITIAL_BALANCE, take_profit_percent=
             position = 1
             entry_price = row['close']
             take_profit_level = entry_price * (1 + take_profit_percent)
-            stop_loss_level = entry_price * (1 - stop_loss_percent)
+            stop_loss_level = entry_price * (1 - take_profit_percent)
             shares = balance // entry_price if whole_shares_only else balance / entry_price
             balance -= shares * entry_price
             record_trade(ticker, row.name, 'Long', 'Open', shares, entry_price, 0, balance)
@@ -117,7 +117,7 @@ def analyze_stocks(tickers, start_date, end_date):
     results = {}
 
     for ticker in tickers:
-        data = pd.read_csv(f'data/hourly/{ticker}_hourly.csv', index_col=0, parse_dates=True)
+        data = pd.read_csv(f'{DATA_DIRECTORY}/{ticker}_hourly.csv', index_col=0, parse_dates=True)
         data = data.rename(columns=str.lower)
         if 'close' not in data.columns:
             raise KeyError(f"Data for {ticker} must contain 'close' column.")
@@ -138,22 +138,3 @@ def analyze_stocks(tickers, start_date, end_date):
     # Save trades to an Excel file
     trades_df.to_excel("trades.xlsx", index=False)
     return results
-
-def plot_results(results):
-    fig, ax = plt.subplots()
-    for ticker, result in results.items():
-        ax.plot(result["Balance Over Time"], label=ticker)
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Balance')
-    ax.legend()
-    plt.show()
-
-if __name__ == "__main__":
-    results = analyze_stocks(TICKERS, START_DATE, END_DATE)
-    plot_results(results)
-
-    for ticker, result in results.items():
-        print(f"Ticker: {ticker}")
-        print(f"Final Balance: ${result['Final Balance']:.2f}")
-        print(f"Profit: ${result['Profit']:.2f}")
-        print(f"Profit Percentage: {result['Profit Percentage']:.2f}%\n")

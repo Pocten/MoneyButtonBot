@@ -3,6 +3,7 @@ START_DATE = "2022-07-07"
 END_DATE = "2024-07-03"
 DATA_DIRECTORY = "data/hourly"
 INTERVAL = "1h"
+TRADES_FILE = "trades.xlsx"
 
 # Trading parameters
 INITIAL_BALANCE = 1000

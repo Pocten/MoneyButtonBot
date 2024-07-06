@@ -1,7 +1,8 @@
 import pandas as pd
 from supertrend import strategy
-from backtest import backtest, analyze_stocks, plot_results
-from config import TICKERS, START_DATE, END_DATE, DATA_DIRECTORY, INTERVAL
+from backtest import backtest, analyze_stocks
+from plot_results import create_price_plots, load_stock_data
+from config import TICKERS, START_DATE, END_DATE, DATA_DIRECTORY, TRADES_FILE
 from download_data import download_data
 
 def main():
@@ -9,7 +10,9 @@ def main():
 
     results = analyze_stocks(TICKERS, START_DATE, END_DATE)
 
-    plot_results(results)
+    trades_df = pd.read_excel(TRADES_FILE)
+    stock_data = load_stock_data(TICKERS, DATA_DIRECTORY)
+    create_price_plots(stock_data)
 
     for ticker, result in results.items():
         print(f"Ticker: {ticker}")
