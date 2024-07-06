@@ -10,7 +10,7 @@ def main():
 
     results = analyze_stocks(TICKERS, START_DATE, END_DATE)
 
-    trades_df = pd.read_excel(TRADES_FILE)
+    trades_df = pd.read_csv(TRADES_FILE)
     stock_data = load_stock_data(TICKERS, DATA_DIRECTORY)
     create_price_plots(stock_data)
 

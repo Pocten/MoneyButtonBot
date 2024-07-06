@@ -1,5 +1,5 @@
+# backtest.py
 import pandas as pd
-import matplotlib.pyplot as plt
 from supertrend import strategy
 from config import DATA_DIRECTORY, INITIAL_BALANCE, TAKE_PROFIT_PERCENT, STOP_LOSS_PERCENT, WHOLE_SHARES_ONLY, TICKERS, START_DATE, END_DATE
 
@@ -135,6 +135,6 @@ def analyze_stocks(tickers, start_date, end_date):
             "Profit Percentage": (final_balance / initial_balance - 1) * 100
         }
 
-    # Save trades to an Excel file
-    trades_df.to_excel("trades.xlsx", index=False)
+    # Save trades to a CSV file
+    trades_df.to_csv("trades.csv", index=False)
     return results
