@@ -11,8 +11,9 @@ def main():
     results = analyze_stocks(TICKERS, START_DATE, END_DATE)
 
     trades_df = pd.read_csv(TRADES_FILE)
+    trades_df['Date'] = pd.to_datetime(trades_df['Date'], format='%d.%m.%Y %H:%M')
     stock_data = load_stock_data(TICKERS, DATA_DIRECTORY)
-    create_price_plots(stock_data)
+    create_price_plots(stock_data, trades_df)
 
     for ticker, result in results.items():
         print(f"Ticker: {ticker}")
