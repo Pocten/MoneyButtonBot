@@ -1,13 +1,11 @@
 # backtest.py
 import pandas as pd
 from supertrend import strategy
-from config import DATA_DIRECTORY, INITIAL_BALANCE, TAKE_PROFIT_PERCENT, STOP_LOSS_PERCENT, WHOLE_SHARES_ONLY, TICKERS, START_DATE, END_DATE
+from config import DATA_DIRECTORY,INTERVALS, INITIAL_BALANCE, TAKE_PROFIT_PERCENT, STOP_LOSS_PERCENT, WHOLE_SHARES_ONLY, TICKERS
+import os
 
-# Глобальный датафрейм для записи всех сделок
-trades_df = pd.DataFrame(columns=['Ticker', 'Date', 'Trade Type', 'Action', 'Shares', 'Price', 'Profit', 'Balance'])
-
-def record_trade(ticker, date, trade_type, action, shares, price, profit, balance):
-    global trades_df
+# Функция для записи сделок
+def record_trade(trades_df, ticker, date, trade_type, action, shares, price, profit, balance):
     trade_data = {
         'Ticker': ticker,
         'Date': pd.to_datetime(date).strftime('%d.%m.%Y %H:%M'),
@@ -18,14 +16,16 @@ def record_trade(ticker, date, trade_type, action, shares, price, profit, balanc
         'Profit': profit,
         'Balance': balance
     }
-    trades_df = pd.concat([trades_df, pd.DataFrame([trade_data])], ignore_index=True)
+    return pd.concat([trades_df, pd.DataFrame([trade_data])], ignore_index=True)
 
-def backtest(data, ticker, initial_balance=INITIAL_BALANCE, take_profit_percent=TAKE_PROFIT_PERCENT, stop_loss_percent=STOP_LOSS_PERCENT, whole_shares_only=WHOLE_SHARES_ONLY):
+
+def backtest(data, ticker, interval, initial_balance=INITIAL_BALANCE, take_profit_percent=TAKE_PROFIT_PERCENT, stop_loss_percent=STOP_LOSS_PERCENT, whole_shares_only=WHOLE_SHARES_ONLY):
     data = strategy(data)
     balance = initial_balance
     position = 0
     shares = 0
     balance_over_time = []
+    trades_df = pd.DataFrame(columns=['Ticker', 'Date', 'Trade Type', 'Action', 'Shares', 'Price', 'Profit', 'Balance'])
     last_potential_trade = None
 
     for index, row in data.iterrows():
@@ -46,14 +46,14 @@ def backtest(data, ticker, initial_balance=INITIAL_BALANCE, take_profit_percent=
                 stop_loss_level = entry_price * (1 - stop_loss_percent)
                 shares = balance // entry_price if whole_shares_only else balance / entry_price
                 balance -= shares * entry_price
-                record_trade(ticker, row.name, 'Long', 'Open', shares, entry_price, 0, balance)
+                trades_df = record_trade(trades_df, ticker, row.name, 'Long', 'Open', shares, entry_price, 0, balance)
             elif trade_type == 'sell' and position == 0:
                 position = -1
                 take_profit_level = entry_price * (1 - take_profit_percent)
                 stop_loss_level = entry_price * (1 + stop_loss_percent)
                 shares = balance // entry_price if whole_shares_only else balance / entry_price
-                balance += shares * entry_price  # Correction here to add the short sell amount to balance
-                record_trade(ticker, row.name, 'Short', 'Open', shares, entry_price, 0, balance)
+                balance += shares * entry_price
+                trades_df = record_trade(trades_df, ticker, row.name, 'Short', 'Open', shares, entry_price, 0, balance)
             continue
 
         if row['BuySignal'] and position == 0:
@@ -63,11 +63,11 @@ def backtest(data, ticker, initial_balance=INITIAL_BALANCE, take_profit_percent=
             stop_loss_level = entry_price * (1 - take_profit_percent)
             shares = balance // entry_price if whole_shares_only else balance / entry_price
             balance -= shares * entry_price
-            record_trade(ticker, row.name, 'Long', 'Open', shares, entry_price, 0, balance)
+            trades_df = record_trade(trades_df, ticker, row.name, 'Long', 'Open', shares, entry_price, 0, balance)
         elif row['SellSignal'] and position == 1:
             profit = (row['close'] - entry_price) * shares
             balance += shares * row['close']
-            record_trade(ticker, row.name, 'Long', 'Close', shares, row['close'], profit, balance)
+            trades_df = record_trade(trades_df, ticker, row.name, 'Long', 'Close', shares, row['close'], profit, balance)
             position = 0
         elif row['SellSignal'] and position == 0:
             position = -1
@@ -75,24 +75,24 @@ def backtest(data, ticker, initial_balance=INITIAL_BALANCE, take_profit_percent=
             take_profit_level = entry_price * (1 - take_profit_percent)
             stop_loss_level = entry_price * (1 + stop_loss_percent)
             shares = balance // entry_price if whole_shares_only else balance / entry_price
-            balance += shares * entry_price  # Correction here to add the short sell amount to balance
-            record_trade(ticker, row.name, 'Short', 'Open', shares, entry_price, 0, balance)
+            balance += shares * entry_price
+            trades_df = record_trade(trades_df, ticker, row.name, 'Short', 'Open', shares, entry_price, 0, balance)
         elif row['BuySignal'] and position == -1:
             profit = (entry_price - row['close']) * shares
-            balance -= shares * row['close']  # Correction here to subtract the amount needed to cover the short
-            record_trade(ticker, row.name, 'Short', 'Close', shares, row['close'], profit, balance)
+            balance -= shares * row['close']
+            trades_df = record_trade(trades_df, ticker, row.name, 'Short', 'Close', shares, row['close'], profit, balance)
             position = 0
         elif position == 1:
             if row['close'] >= take_profit_level or row['close'] <= stop_loss_level:
                 profit = (row['close'] - entry_price) * shares
                 balance += shares * row['close']
-                record_trade(ticker, row.name, 'Long', 'Close', shares, row['close'], profit, balance)
+                trades_df = record_trade(trades_df, ticker, row.name, 'Long', 'Close', shares, row['close'], profit, balance)
                 position = 0
         elif position == -1:
             if row['close'] <= take_profit_level or row['close'] >= stop_loss_level:
                 profit = (entry_price - row['close']) * shares
-                balance -= shares * row['close']  # Correction here to subtract the amount needed to cover the short
-                record_trade(ticker, row.name, 'Short', 'Close', shares, row['close'], profit, balance)
+                balance -= shares * row['close']
+                trades_df = record_trade(trades_df, ticker, row.name, 'Short', 'Close', shares, row['close'], profit, balance)
                 position = 0
         balance_over_time.append(balance)
 
@@ -101,40 +101,54 @@ def backtest(data, ticker, initial_balance=INITIAL_BALANCE, take_profit_percent=
         if position == 1:
             profit = (data.iloc[-1]['close'] - entry_price) * shares
             balance += shares * data.iloc[-1]['close']
-            record_trade(ticker, data.index[-1], 'Long', 'Close', shares, data.iloc[-1]['close'], profit, balance)
+            trades_df = record_trade(trades_df, ticker, data.index[-1], 'Long', 'Close', shares, data.iloc[-1]['close'], profit, balance)
         elif position == -1:
             profit = (entry_price - data.iloc[-1]['close']) * shares
-            balance -= shares * data.iloc[-1]['close']  # Correction here to subtract the amount needed to cover the short
-            record_trade(ticker, data.index[-1], 'Short', 'Close', shares, data.iloc[-1]['close'], profit, balance)
+            balance -= shares * data.iloc[-1]['close']
+            trades_df = record_trade(trades_df, ticker, data.index[-1], 'Short', 'Close', shares, data.iloc[-1]['close'], profit, balance)
 
-    return balance, balance_over_time
+    return balance, balance_over_time, trades_df
 
-def analyze_stocks(tickers, start_date, end_date):
-    global trades_df
-    trades_df = pd.DataFrame(columns=['Ticker', 'Date', 'Trade Type', 'Action', 'Shares', 'Price', 'Profit', 'Balance'])
 
-    initial_balance = INITIAL_BALANCE
+def analyze_stocks(tickers, data_directory):
     results = {}
 
-    for ticker in tickers:
-        data = pd.read_csv(f'{DATA_DIRECTORY}/{ticker}_hourly.csv', index_col=0, parse_dates=True)
-        data = data.rename(columns=str.lower)
-        if 'close' not in data.columns:
-            raise KeyError(f"Data for {ticker} must contain 'close' column.")
-        data['close'] = pd.to_numeric(data['close'], errors='coerce')
-        data = data.dropna(subset=['close'])
-        if len(data) < 55:
-            print(f"Недостаточно данных для {ticker}. Пропущен.")
-            continue
-        print(f"Processing {ticker}, data length: {len(data)}")
-        final_balance, balance_over_time = backtest(data, ticker, initial_balance)
-        results[ticker] = {
-            "Final Balance": final_balance,
-            "Balance Over Time": balance_over_time,
-            "Profit": final_balance - initial_balance,
-            "Profit Percentage": (final_balance / initial_balance - 1) * 100
-        }
+    for interval in INTERVALS:
+        interval_results = {}
+        for ticker in tickers:
+            file_path = os.path.join(data_directory, interval, f"{ticker}_{interval}.csv")
+            if not os.path.exists(file_path):
+                continue
 
-    # Save trades to a CSV file
-    trades_df.to_csv("trades.csv", index=False)
+            data = pd.read_csv(file_path, index_col=0, parse_dates=True)
+            data = data.rename(columns=str.lower)
+            if 'close' not in data.columns:
+                print(f"Data for {ticker} ({interval}) does not contain 'close' column. Skipping this file.")
+                continue
+
+            data['close'] = pd.to_numeric(data['close'], errors='coerce')
+            data = data.dropna(subset=['close'])
+            if len(data) < 55:
+                continue
+            final_balance, balance_over_time, trades_df = backtest(data, ticker, interval, initial_balance=INITIAL_BALANCE)
+            interval_results[(ticker, interval)] = {
+                "Final Balance": final_balance,
+                "Balance Over Time": balance_over_time,
+                "Profit": final_balance - INITIAL_BALANCE,
+                "Profit Percentage": (final_balance / INITIAL_BALANCE - 1) * 100
+            }
+
+            # Сохранение сделок для каждого интервала
+            output_dir = os.path.join(data_directory, interval, 'output')
+            os.makedirs(output_dir, exist_ok=True)
+            trades_file = os.path.join(output_dir, f"trades_{interval}.csv")
+            if os.path.exists(trades_file):
+                existing_trades = pd.read_csv(trades_file)
+                trades_df = pd.concat([existing_trades, trades_df], ignore_index=True)
+                trades_df = trades_df.drop_duplicates(subset=['Ticker', 'Date', 'Trade Type', 'Action', 'Shares', 'Price'])
+
+            trades_df.to_csv(trades_file, index=False)
+
+        results.update(interval_results)
+
     return results

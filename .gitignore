@@ -1,3 +1,6 @@
+# Files and folders of the project itself
+data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

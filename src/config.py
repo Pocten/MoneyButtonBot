@@ -1,9 +1,16 @@
 TICKERS = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "BABA", "V", "JNJ", "WMT", "NVDA"]
-START_DATE = "2022-07-07"
-END_DATE = "2024-07-03"
-DATA_DIRECTORY = "data/hourly"
-INTERVAL = "1h"
-TRADES_FILE = "trades.csv"
+DATA_DIRECTORY = "data"
+
+INTERVALS = {
+    '1m': 7,
+    '5m': 60,
+    '15m': 60,
+    '30m': 60,
+    '1h': 730,
+    '1d': None,
+    '1wk': None,
+    '1mo': None
+}
 
 # Trading parameters
 INITIAL_BALANCE = 1000

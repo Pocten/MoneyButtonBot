@@ -5,3 +5,4 @@ ta-lib
 yfinance
 openpyxl
 plotly
+tqdm
