@@ -26,6 +26,10 @@ def generate_results_file(interval, trades_df):
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"results_{interval}.txt")
 
+    # Очистка файла перед записью новых данных
+    with open(output_file, 'w') as f:
+        f.write("")
+
     with open(output_file, 'w') as f:
         for ticker in TICKERS:
             ticker_trades = trades_df[trades_df['Ticker'] == ticker]

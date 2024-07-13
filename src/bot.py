@@ -22,7 +22,7 @@ def animate():
             break
         tqdm.write(f'Loading {c}', end='\r')
         time.sleep(0.1)
-    sys.stdout.write('\rBot is done!     \n')
+    sys.stdout.write('\rBot is finished!     \n')
 
 done = False
 t = threading.Thread(target=animate)
