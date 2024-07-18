@@ -1,9 +1,14 @@
 import os
 import pandas as pd
+import logging
 from config import TICKERS, DATA_DIRECTORY, INTERVALS, INITIAL_BALANCE
 from download_data import get_company_info
+from logging_setup import setup_logging
+
+setup_logging('results.log')
 
 def calculate_results(trades_df):
+    logging.debug(f"Calculating results for trades dataframe")
     initial_balance = INITIAL_BALANCE
     final_balance = trades_df['Balance'].iloc[-1]
     profit = final_balance - initial_balance
@@ -21,14 +26,11 @@ def calculate_results(trades_df):
         "percentage_profitable_trades": percentage_profitable_trades
     }
 
-def generate_results_file(interval, trades_df):
-    output_dir = os.path.join(DATA_DIRECTORY, interval, 'output')
+def generate_results_file(interval, trades_df, strategy_name):
+    logging.debug(f"Generating results file for strategy {strategy_name} and interval {interval}")
+    output_dir = os.path.join(DATA_DIRECTORY, 'strategy_results', strategy_name, interval, 'output')
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"results_{interval}.txt")
-
-    # Очистка файла перед записью новых данных
-    with open(output_file, 'w') as f:
-        f.write("")
 
     with open(output_file, 'w') as f:
         for ticker in TICKERS:
@@ -51,3 +53,4 @@ def generate_results_file(interval, trades_df):
                 f.write(f"Number of trades: {results['num_trades']}\n")
                 f.write(f"Percentage of profitable trades: {results['percentage_profitable_trades']:.2f}%\n")
                 f.write("============================================\n")
+    logging.debug(f"Results file generated at {output_file}")

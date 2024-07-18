@@ -1,5 +1,6 @@
 # Files and folders of the project itself
 data/
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
