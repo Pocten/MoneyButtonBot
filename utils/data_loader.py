@@ -46,6 +46,7 @@ def load_data(ticker, interval):
     else:
         logger.info(f"Loading data from {file_path}")
         data = pd.read_csv(file_path, index_col=0, parse_dates=True)
+        data.columns = data.columns.str.strip().str.lower()  # Преобразуем заголовки столбцов в нижний регистр
     return data
 
 def download_all_data():

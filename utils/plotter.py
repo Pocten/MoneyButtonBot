@@ -2,6 +2,9 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
+import logging
+
+logger = logging.getLogger(__name__)
 
 def save_plot_as_html(data, signals, title, file_path):
     fig = go.Figure()
@@ -39,20 +42,26 @@ def load_stock_data(tickers, data_directory, interval):
         file_path = os.path.join(data_directory, interval, f"{ticker}_{interval}.csv")
         if os.path.exists(file_path):
             data = pd.read_csv(file_path, index_col=0, parse_dates=True)
-            # Приводим все заголовки столбцов к нижнему регистру и убираем пробелы
             data.columns = data.columns.str.strip().str.lower()
             if 'close' not in data.columns:
                 continue
-            # Преобразование индекса
             data.index = pd.to_datetime(data.index, utc=True)
             stock_data[ticker] = data
     return stock_data
 
 def create_price_plots(stock_data, trades_df, strategy_name, interval):
     try:
-        trades_df['Date'] = pd.to_datetime(trades_df['Date'])
+        if trades_df.empty:
+            logger.error("Trades DataFrame is empty. Cannot create plots.")
+            return
+
+        if trades_df['Date'].str.contains('-').any():
+            trades_df['Date'] = pd.to_datetime(trades_df['Date'], format='%d.%m.%Y %H:%M:%S%z', utc=True, dayfirst=True)
+        else:
+            trades_df['Date'] = pd.to_datetime(trades_df['Date'], format='%d.%m.%Y %H:%M:%S', dayfirst=True)
     except Exception as e:
-        print(f"Error parsing dates: {e}")
+        logger.error(f"Error parsing dates: {e}")
+        return
 
     for ticker, data in stock_data.items():
         fig = go.Figure()
@@ -61,6 +70,10 @@ def create_price_plots(stock_data, trades_df, strategy_name, interval):
         fig.add_trace(trace_data)
 
         ticker_trades = trades_df[trades_df['Ticker'] == ticker]
+        if ticker_trades.empty:
+            logger.warning(f"No trades found for ticker {ticker}. Skipping plot.")
+            continue
+
         long_open = ticker_trades[(ticker_trades['Trade Type'] == 'Long') & (ticker_trades['Action'] == 'Open')]
         long_close = ticker_trades[(ticker_trades['Trade Type'] == 'Long') & (ticker_trades['Action'] == 'Close')]
         short_open = ticker_trades[(ticker_trades['Trade Type'] == 'Short') & (ticker_trades['Action'] == 'Open')]

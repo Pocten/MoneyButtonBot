@@ -2,12 +2,10 @@ import logging
 import pandas as pd
 
 class BaseStrategy:
-    def __init__(self, data, initial_balance, take_profit_percent, stop_loss_percent, whole_shares_only=True):
+    def __init__(self, data, initial_balance, whole_shares_only=True):
         self.data = data
         self.initial_balance = initial_balance
         self.balance = initial_balance
-        self.take_profit_percent = take_profit_percent
-        self.stop_loss_percent = stop_loss_percent
         self.whole_shares_only = whole_shares_only
         self.position = 0  # Количество акций в текущей позиции
         self.position_type = None  # Тип позиции: Long или Short
@@ -24,89 +22,83 @@ class BaseStrategy:
         self.logger.info("Backtest completed.")
         return results
 
+    def record_trade(self, timestamp, trade_type, action, shares, price, profit, balance):
+        """Записывает сделку в журнал"""
+        trade = {
+            'Date': timestamp.strftime('%d.%m.%Y %H:%M:%S%z'),
+            'Trade Type': trade_type,
+            'Action': action,
+            'Shares': shares,
+            'Price': price,
+            'Profit': profit,
+            'Balance': balance
+        }
+        self.trades.append(trade)
+        self.logger.info(f"{action} {shares} shares at {price} on {timestamp} as {trade_type} with profit {profit} and balance {balance}")
+    
     def simulate_trading(self, signals):
+        """Запускает симуляцию торговли на основе сгенерированных сигналов"""
         self.logger.info("Starting trade simulation...")
-        
         for timestamp, signal in signals:
-            price = self.data.loc[timestamp, 'Close']
+            price = self.data.loc[timestamp, 'close']
             if signal == 'buy':
-                self.buy(price, timestamp, 'Long')
+                self.open_position(price, timestamp, 'Long')
             elif signal == 'sell':
-                self.sell(price, timestamp, 'Long')
+                self.close_position(price, timestamp, 'Long')
             elif signal == 'short':
-                self.buy(price, timestamp, 'Short')
+                self.open_position(price, timestamp, 'Short')
             elif signal == 'cover':
-                self.sell(price, timestamp, 'Short')
+                self.close_position(price, timestamp, 'Short')
             self.apply_stop_loss_and_take_profit(price, timestamp)
+
+        # Закрытие всех открытых позиций в конце периода
+        if self.position != 0:
+            self.logger.info("Closing open position at the end of the period...")
+            self.close_position(self.data.iloc[-1]['close'], self.data.index[-1], self.position_type)
 
         results = {
             "initial_balance": self.initial_balance,
-            "final_value": self.balance + self.position * self.data.iloc[-1]['Close'] * (1 if self.position_type == 'Long' else -1),
+            "final_value": self.balance + self.position * self.data.iloc[-1]['close'] * (1 if self.position_type == 'Long' else -1),
             "trades": self.trades
         }
 
         self.logger.info("Trade simulation completed.")
         return results
 
-    def buy(self, price, timestamp, trade_type):
+    def open_position(self, price, timestamp, trade_type):
+        """Открывает новую позицию"""
         if self.position_type == trade_type:
-            self.logger.info(f"Already in a {trade_type} position, ignoring buy signal.")
+            self.logger.info(f"Already in a {trade_type} position, ignoring open signal.")
             return
         
-        shares_to_buy = self.balance // price if self.whole_shares_only else self.balance / price
-        if shares_to_buy > 0:
-            cost = shares_to_buy * price
-            self.position += shares_to_buy
-            self.balance -= cost
-            trade = {
-                'Date': timestamp.strftime('%d.%m.%Y %H:%M:%S%z'),
-                'Trade Type': trade_type,
-                'Action': 'Open',
-                'Shares': shares_to_buy,
-                'Price': price,
-                'Profit': 0.0,
-                'Balance': self.balance
-            }
-            self.trades.append(trade)
+        shares_to_trade = self.balance // price if self.whole_shares_only else self.balance / price
+        if shares_to_trade > 0:
+            cost = shares_to_trade * price
+            if trade_type == 'Long':
+                self.position += shares_to_trade
+                self.balance -= cost
+            else:  # Short
+                self.position -= shares_to_trade
+                self.balance += cost
+            self.record_trade(timestamp, trade_type, 'Open', shares_to_trade, price, 0.0, self.balance)
             self.position_type = trade_type
-            self.logger.info(f"{trade['Action']} {shares_to_buy} shares at {price} on {timestamp}")
 
-    def sell(self, price, timestamp, trade_type):
+    def close_position(self, price, timestamp, trade_type):
+        """Закрывает существующую позицию"""
         if self.position == 0 or self.position_type != trade_type:
-            self.logger.info(f"No {trade_type} position to sell, ignoring sell signal.")
+            self.logger.info(f"No {trade_type} position to close, ignoring close signal.")
             return
         
-        proceeds = self.position * price
+        proceeds = abs(self.position) * price
         profit = (proceeds - sum(trade['Shares'] * trade['Price'] for trade in self.trades if trade['Action'] == 'Open')) * (1 if trade_type == 'Long' else -1)
-        self.balance += proceeds
-        trade = {
-            'Date': timestamp.strftime('%d.%m.%Y %H:%M:%S%z'),
-            'Trade Type': trade_type,
-            'Action': 'Close',
-            'Shares': self.position,
-            'Price': price,
-            'Profit': profit,
-            'Balance': self.balance
-        }
-        self.trades.append(trade)
+        if trade_type == 'Long':
+            self.balance += proceeds
+        else:  # Short
+            self.balance -= proceeds
+        self.record_trade(timestamp, trade_type, 'Close', abs(self.position), price, profit, self.balance)
         self.position = 0
         self.position_type = None
-        self.logger.info(f"{trade['Action']} {self.position} shares at {price} on {timestamp}")
 
     def apply_stop_loss_and_take_profit(self, price, timestamp):
-        if self.position > 0:
-            entry_price = self.trades[-1]['Price']
-            if self.position_type == 'Long':
-                if price >= entry_price * (1 + self.take_profit_percent):
-                    self.logger.info(f"Take profit triggered at {price} on {timestamp}")
-                    self.sell(price, timestamp, 'Long')
-                elif price <= entry_price * (1 - self.stop_loss_percent):
-                    self.logger.info(f"Stop loss triggered at {price} on {timestamp}")
-                    self.sell(price, timestamp, 'Long')
-            elif self.position_type == 'Short':
-                if price <= entry_price * (1 - self.take_profit_percent):
-                    self.logger.info(f"Take profit triggered at {price} on {timestamp}")
-                    self.sell(price, timestamp, 'Short')
-                elif price >= entry_price * (1 + self.stop_loss_percent):
-                    self.logger.info(f"Stop loss triggered at {price} on {timestamp}")
-                    self.sell(price, timestamp, 'Short')
+        """Применяет стоп-лосс и тейк-профит уровни. Может быть переопределен в дочерних классах."""
+        pass  # В базовом классе этот метод не делает ничего, может быть переопределен в стратегиях

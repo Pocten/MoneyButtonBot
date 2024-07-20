@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import logging
 import yfinance as yf
+from config.config import INITIAL_BALANCE
 
 logger = logging.getLogger(__name__)
 
@@ -11,8 +12,12 @@ def save_trade_results(strategy_name, ticker, interval, results):
     file_path = os.path.join(directory, f"{ticker}_trades.csv")
     
     trades_df = pd.DataFrame(results['trades'])
-    trades_df.to_csv(file_path, index=False)
-    logger.info(f"Trade results for {ticker} saved to {file_path}")
+    if trades_df.empty:
+        logger.error("Trades DataFrame is empty.")
+    else:
+        logger.info(f"Trades DataFrame columns: {trades_df.columns}")
+        trades_df.to_csv(file_path, index=False)
+        logger.info(f"Trade results for {ticker} saved to {file_path}")
 
 def get_company_info(ticker):
     stock = yf.Ticker(ticker)
@@ -25,7 +30,11 @@ def get_company_info(ticker):
     }
 
 def calculate_results(trades_df):
-    initial_balance = trades_df['Balance'].iloc[0]
+    if 'Balance' not in trades_df.columns:
+        logger.error("Missing 'Balance' column in trades DataFrame.")
+        return None
+
+    initial_balance = INITIAL_BALANCE
     final_balance = trades_df['Balance'].iloc[-1]
     profit = final_balance - initial_balance
     profit_percentage = (profit / initial_balance) * 100
@@ -53,6 +62,8 @@ def save_summary_results(all_results, strategy_name, interval):
         for ticker, results in all_results:
             company_info = get_company_info(ticker)
             results_summary = calculate_results(pd.DataFrame(results['trades']))
+            if results_summary is None:
+                continue
             f.write("============================================\n")
             f.write(f"Full company name: {company_info['name']}\n")
             f.write(f"Ticker: {company_info['ticker']}\n")

@@ -1,5 +1,5 @@
 import importlib
-from config.config import TICKERS, INTERVALS, INITIAL_BALANCE, TAKE_PROFIT_PERCENT, STOP_LOSS_PERCENT, WHOLE_SHARES_ONLY
+from config.config import TICKERS, INTERVALS, INITIAL_BALANCE, WHOLE_SHARES_ONLY
 from utils.data_loader import download_all_data, load_data
 from utils.logger import setup_logging
 from utils.plotter import save_plot_as_html, load_stock_data, create_price_plots
@@ -35,7 +35,7 @@ def main():
                 logger.info(f"Running backtest for {strategy_class_name} on {ticker} with interval {interval}...")
                 module = importlib.import_module(f'strategies.{strategy_name}')
                 strategy_class = getattr(module, strategy_class_name)
-                strategy = strategy_class(data, INITIAL_BALANCE, TAKE_PROFIT_PERCENT, STOP_LOSS_PERCENT, WHOLE_SHARES_ONLY)
+                strategy = strategy_class(data, INITIAL_BALANCE, WHOLE_SHARES_ONLY)
                 results = strategy.backtest()
                 logger.info(f"Results for {strategy_class_name} on {ticker} with interval {interval}: {results}")
                 save_trade_results(strategy_name, ticker, interval, results)
