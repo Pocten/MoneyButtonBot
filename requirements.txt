@@ -3,3 +3,7 @@ numpy
 matplotlib
 ta-lib
 yfinance
+openpyxl
+plotly
+tqdm
+scipy
